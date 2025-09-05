@@ -3,9 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mi Horario Kawaii 💕</title>
+    <title>Mi Horario Kawaii 💖</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700;800&display=swap');
+        
+        /* 
+        =====================================
+        DOCUMENTACIÓN INTERNA - CALENDARIO KAWAII
+        =====================================
+        
+        NOTAS RÁPIDAS:
+        - Pestaña "📌 Notas rápidas" para guardar notas temporales
+        - Se guardan en tabla "notas_rapidas" de Supabase
+        - Fallback a memoria local si no hay conexión
+        
+        TEMAS PERSONALIZABLES:
+        - 3 temas disponibles: Rosa, Lila, Celeste
+        - Se cambian con selector en el header
+        - Persisten usando localStorage con clave "temaKawaii"
+        
+        MASCOTITA KAWAII:
+        - GIF arrastrable en esquina inferior izquierda
+        - Posición persiste en localStorage (claves: "mascotaLeft", "mascotaTop")
+        - Click sin arrastrar muestra frases de motivación
+        - Botón para ocultar/mostrar
+        
+        CLAVES LOCALSTORAGE:
+        - temaKawaii: tema seleccionado (theme-rosa, theme-lila, theme-celeste)
+        - mascotaLeft: posición X de la mascotita
+        - mascotaTop: posición Y de la mascotita
+        - mascotaVisible: si la mascotita está visible (true/false)
+        */
         
         * {
             margin: 0;
@@ -13,50 +41,138 @@
             box-sizing: border-box;
         }
         
+        /* TEMA BASE (ROSA) */
         body {
             font-family: 'Nunito', sans-serif;
-            background: linear-gradient(135deg, #ffccd5 0%, #ffb3c1 25%, #ff99ac 50%, #ff8fa3 75%, #ff85a1 100%);
+            background: linear-gradient(135deg, #ffeef7 0%, #ffe0ec 30%, #ffd1dc 70%, #ffb6c1 100%);
             min-height: 100vh;
             color: #8b4d6b;
             overflow-x: hidden;
-            position: relative;
-            padding-bottom: 60px; /* Espacio para navegación inferior */
+            transition: all 0.5s ease;
         }
         
-        body::before {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-image: 
-                radial-gradient(circle at 20% 30%, rgba(255, 182, 193, 0.3) 2px, transparent 2px),
-                radial-gradient(circle at 70% 60%, rgba(255, 192, 203, 0.4) 1.5px, transparent 1.5px),
-                radial-gradient(circle at 45% 80%, rgba(255, 20, 147, 0.2) 1px, transparent 1px),
-                radial-gradient(circle at 80% 20%, rgba(255, 105, 180, 0.3) 2.5px, transparent 2.5px);
-            background-size: 80px 80px, 60px 60px, 40px 40px, 100px 100px;
-            pointer-events: none;
-            z-index: 0;
+        /* TEMAS PERSONALIZABLES */
+        .theme-lila body {
+            background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 30%, #d8b4fe 70%, #c084fc 100%);
+        }
+        
+        .theme-celeste body {
+            background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 30%, #7dd3fc 70%, #38bdf8 100%);
+        }
+        
+        .theme-lila .header {
+            background: linear-gradient(135deg, #a855f7, #7c3aed, #a855f7);
+        }
+        
+        .theme-celeste .header {
+            background: linear-gradient(135deg, #0ea5e9, #0284c7, #0ea5e9);
+        }
+        
+        .theme-lila .nav-btn, .theme-lila .fab, .theme-lila .bottom-nav {
+            background: linear-gradient(135deg, #a855f7, #7c3aed);
+        }
+        
+        .theme-celeste .nav-btn, .theme-celeste .fab, .theme-celeste .bottom-nav {
+            background: linear-gradient(135deg, #0ea5e9, #0284c7);
+        }
+        
+        .theme-lila .tab-btn.active {
+            color: #7c3aed;
+        }
+        
+        .theme-celeste .tab-btn.active {
+            color: #0284c7;
+        }
+        
+        .theme-lila .tab-btn.active::after {
+            background: linear-gradient(90deg, #a855f7, #7c3aed);
+        }
+        
+        .theme-celeste .tab-btn.active::after {
+            background: linear-gradient(90deg, #0ea5e9, #0284c7);
+        }
+        
+        .theme-lila .month-title, .theme-lila .section-title {
+            color: #7c3aed;
+        }
+        
+        .theme-celeste .month-title, .theme-celeste .section-title {
+            color: #0284c7;
+        }
+        
+        .theme-lila .day-header {
+            color: #7c3aed;
+            background: linear-gradient(135deg, #e9d5ff, #d8b4fe);
+        }
+        
+        .theme-celeste .day-header {
+            color: #0284c7;
+            background: linear-gradient(135deg, #bae6fd, #7dd3fc);
+        }
+        
+        .theme-lila .calendar-day.current {
+            background: linear-gradient(135deg, #a855f7, #7c3aed);
+        }
+        
+        .theme-celeste .calendar-day.current {
+            background: linear-gradient(135deg, #0ea5e9, #0284c7);
+        }
+        
+        .theme-lila .selected-date {
+            background: linear-gradient(135deg, #e9d5ff, #d8b4fe);
+            border-color: rgba(168, 85, 247, 0.2);
+        }
+        
+        .theme-celeste .selected-date {
+            background: linear-gradient(135deg, #bae6fd, #7dd3fc);
+            border-color: rgba(14, 165, 233, 0.2);
+        }
+        
+        .theme-lila .calendar-day.has-classes::after {
+            background: #a855f7;
+        }
+        
+        .theme-celeste .calendar-day.has-classes::after {
+            background: #0ea5e9;
+        }
+        
+        .theme-lila .close, .theme-lila .modal-title {
+            color: #7c3aed;
+        }
+        
+        .theme-celeste .close, .theme-celeste .modal-title {
+            color: #0284c7;
+        }
+        
+        .theme-lila .btn-primary {
+            background: linear-gradient(135deg, #a855f7, #7c3aed);
+        }
+        
+        .theme-celeste .btn-primary {
+            background: linear-gradient(135deg, #0ea5e9, #0284c7);
+        }
+        
+        .theme-lila .notification {
+            background: linear-gradient(135deg, #a855f7, #7c3aed);
+        }
+        
+        .theme-celeste .notification {
+            background: linear-gradient(135deg, #0ea5e9, #0284c7);
         }
         
         .container {
             max-width: 100vw;
             margin: 0 auto;
             padding: 0;
-            position: relative;
-            z-index: 1;
         }
         
         .header {
-            background: linear-gradient(135deg, #ff69b4 0%, #ff1493 50%, #dc143c 100%);
+            background: linear-gradient(135deg, #ff69b4, #ff1493, #ff69b4);
             color: white;
             padding: 20px 15px 30px;
             text-align: center;
             position: relative;
-            box-shadow: 0 10px 40px rgba(255, 20, 147, 0.4);
-            border-bottom-left-radius: 20px;
-            border-bottom-right-radius: 20px;
+            box-shadow: 0 8px 32px rgba(255, 20, 147, 0.3);
         }
         
         .header::before {
@@ -66,106 +182,133 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M20,30 Q25,25 30,30 Q25,35 20,30" fill="rgba(255,255,255,0.1)"/><path d="M70,20 Q75,15 80,20 Q75,25 70,20" fill="rgba(255,255,255,0.1)"/><path d="M15,70 Q20,65 25,70 Q20,75 15,70" fill="rgba(255,255,255,0.1)"/><path d="M80,75 Q85,70 90,75 Q85,80 80,75" fill="rgba(255,255,255,0.1)"/><circle cx="50" cy="50" r="1.5" fill="rgba(255,255,255,0.2)"/></svg>');
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="20" cy="20" r="2" fill="rgba(255,255,255,0.1)"/><circle cx="80" cy="40" r="1.5" fill="rgba(255,255,255,0.1)"/><circle cx="40" cy="60" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="70" cy="80" r="2" fill="rgba(255,255,255,0.1)"/><circle cx="30" cy="85" r="1.5" fill="rgba(255,255,255,0.1)"/></svg>');
             pointer-events: none;
         }
         
-        .header::after {
-            content: '🎀 ✨ 💕 🌸 💖 ✨ 🎀';
-            position: absolute;
-            bottom: -12px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(255, 255, 255, 0.95);
-            color: #ff1493;
-            padding: 6px 15px;
-            border-radius: 20px;
-            font-size: 0.7rem;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-            animation: sparkleFloat 3s ease-in-out infinite;
-        }
-        
-        @keyframes sparkleFloat {
-            0%, 100% { transform: translateX(-50%) translateY(0px); }
-            50% { transform: translateX(-50%) translateY(-5px); }
-        }
-        
-        .hello-kitty-img {
-            width: 80px;
-            height: auto;
-            animation: kittyFloat 4s ease-in-out infinite;
-            margin-bottom: 10px;
-        }
-        
-        @keyframes kittyFloat {
-            0%, 100% { transform: translateY(0px) rotate(0deg); }
-            50% { transform: translateY(-10px) rotate(2deg); }
-        }
-        
         .header-title {
-            font-size: 1.6rem;
+            font-size: 1.8rem;
             font-weight: 800;
             margin-bottom: 5px;
-            text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.3);
-            background: linear-gradient(45deg, #ffffff, #ffe4e1);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
         }
         
         .header-subtitle {
             font-size: 0.9rem;
             opacity: 0.9;
-            font-weight: 500;
-            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
+            font-weight: 400;
         }
         
-        .calendar-section {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 240, 245, 0.95) 100%);
-            margin: 15px 10px 0;
+        .theme-selector {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 8px 12px;
             border-radius: 20px;
-            min-height: calc(100vh - 150px);
-            padding: 20px 15px 80px;
-            box-shadow: 0 -10px 40px rgba(255, 105, 180, 0.2), 0 10px 40px rgba(0, 0, 0, 0.1);
-            border: 2px solid rgba(255, 182, 193, 0.3);
-            position: relative;
+            font-size: 0.8rem;
+            cursor: pointer;
             backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
         }
         
-        .calendar-section::before {
-            content: '';
+        .theme-selector:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.05);
+        }
+        
+        .mascota-toggle {
             position: absolute;
             top: 15px;
             left: 15px;
-            right: 15px;
-            bottom: 15px;
-            border: 2px dashed rgba(255, 105, 180, 0.3);
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 6px 10px;
             border-radius: 15px;
-            pointer-events: none;
+            font-size: 0.7rem;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+        
+        .mascota-toggle:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.05);
+        }
+        
+        /* Navegación por pestañas */
+        .tab-nav {
+            background: white;
+            display: flex;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .tab-btn {
+            flex: 1;
+            padding: 15px;
+            background: none;
+            border: none;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #8b4d6b;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .tab-btn.active {
+            color: #ff1493;
+        }
+        
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #ff69b4, #ff1493);
+            border-radius: 3px 3px 0 0;
+        }
+        
+        .tab-content {
+            display: none;
+            min-height: calc(100vh - 200px);
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .calendar-section, .recordatorios-section, .notas-section {
+            background: white;
+            margin: 0;
+            border-radius: 0;
+            min-height: calc(100vh - 200px);
+            padding: 25px 20px 100px;
         }
         
         .month-nav {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
-            padding: 0 5px;
+            margin-bottom: 25px;
         }
         
         .month-title {
-            font-size: 1.2rem;
-            font-weight: 800;
+            font-size: 1.3rem;
+            font-weight: 700;
             color: #ff1493;
-            text-shadow: 2px 2px 4px rgba(255, 20, 147, 0.1);
-            background: linear-gradient(45deg, #ff1493, #ff69b4);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            text-align: center;
         }
         
         .nav-btn {
-            background: linear-gradient(135deg, #ff69b4 0%, #ff1493 50%, #dc143c 100%);
+            background: linear-gradient(135deg, #ff69b4, #ff1493);
             border: none;
             color: white;
             font-size: 18px;
@@ -177,59 +320,47 @@
             justify-content: center;
             cursor: pointer;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(255, 20, 147, 0.4);
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            touch-action: manipulation;
+            box-shadow: 0 4px 15px rgba(255, 20, 147, 0.3);
         }
         
-        .nav-btn:hover, .nav-btn:active {
+        .nav-btn:hover {
             transform: scale(1.1);
-            box-shadow: 0 6px 20px rgba(255, 20, 147, 0.6);
+            box-shadow: 0 6px 20px rgba(255, 20, 147, 0.4);
         }
         
         .today-btn {
-            background: linear-gradient(135deg, #ffb6c1 0%, #ffc0cb 50%, #ffe4e1 100%);
+            background: linear-gradient(135deg, #ffb6c1, #ffc0cb);
             color: #8b4d6b;
-            padding: 10px 20px;
+            padding: 8px 16px;
             border-radius: 20px;
             font-size: 0.9rem;
-            font-weight: 700;
-            border: 2px solid rgba(255, 105, 180, 0.3);
+            font-weight: 600;
+            border: none;
             cursor: pointer;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(255, 182, 193, 0.4);
-            margin-bottom: 15px;
-            display: block;
-            margin-left: auto;
-            margin-right: auto;
-            touch-action: manipulation;
         }
         
-        .today-btn:hover, .today-btn:active {
+        .today-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(255, 182, 193, 0.6);
-            background: linear-gradient(135deg, #ffc0cb 0%, #ffe4e1 50%, #fff0f5 100%);
+            box-shadow: 0 4px 15px rgba(255, 182, 193, 0.4);
         }
         
         .calendar-grid {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
-            gap: 3px;
+            gap: 2px;
             margin-bottom: 20px;
-            padding: 0 2px;
         }
         
         .day-header {
             text-align: center;
-            padding: 8px 2px;
-            font-weight: 800;
+            padding: 12px 4px;
+            font-weight: 700;
             color: #ff1493;
             font-size: 0.8rem;
-            background: linear-gradient(135deg, #ffe0ec 0%, #ffd1dc 50%, #ffb6c1 100%);
-            border-radius: 10px;
+            background: linear-gradient(135deg, #ffe0ec, #ffd1dc);
+            border-radius: 12px;
             margin-bottom: 5px;
-            box-shadow: 0 2px 8px rgba(255, 20, 147, 0.2);
-            border: 2px solid rgba(255, 255, 255, 0.5);
         }
         
         .calendar-day {
@@ -238,181 +369,116 @@
             align-items: center;
             justify-content: center;
             border-radius: 12px;
-            font-weight: 700;
+            font-weight: 600;
             font-size: 0.9rem;
             cursor: pointer;
             transition: all 0.3s ease;
             position: relative;
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 240, 245, 0.8) 100%);
-            border: 2px solid rgba(255, 182, 193, 0.2);
-            box-shadow: 0 2px 8px rgba(255, 105, 180, 0.1);
-            min-height: 35px;
-            touch-action: manipulation;
+            background: rgba(255, 255, 255, 0.5);
+            border: 2px solid transparent;
         }
         
-        .calendar-day:hover, .calendar-day:active {
+        .calendar-day:hover {
             transform: scale(1.05);
-            background: linear-gradient(135deg, #ffc0cb 0%, #ffb6c1 100%);
-            box-shadow: 0 3px 12px rgba(255, 20, 147, 0.3);
-            border-color: rgba(255, 105, 180, 0.5);
+            background: rgba(255, 182, 193, 0.3);
         }
         
         .calendar-day.other-month {
-            color: #d3d3d3;
-            background: rgba(255, 255, 255, 0.3);
-            border-color: rgba(211, 211, 211, 0.3);
+            color: #ccc;
+            background: rgba(255, 255, 255, 0.2);
         }
         
         .calendar-day.current {
-            background: linear-gradient(135deg, #ff69b4 0%, #ff1493 50%, #dc143c 100%);
+            background: linear-gradient(135deg, #ff69b4, #ff1493);
             color: white;
             transform: scale(1.1);
-            box-shadow: 0 6px 20px rgba(255, 20, 147, 0.6);
-            border: 3px solid white;
-            animation: currentDayGlow 2s infinite;
-        }
-        
-        @keyframes currentDayGlow {
-            0%, 100% { box-shadow: 0 6px 20px rgba(255, 20, 147, 0.6); }
-            50% { box-shadow: 0 8px 25px rgba(255, 20, 147, 0.8); }
+            box-shadow: 0 6px 20px rgba(255, 20, 147, 0.4);
+            border: 2px solid white;
         }
         
         .calendar-day.has-classes::after {
-            content: '🌸';
+            content: '';
             position: absolute;
-            bottom: 1px;
-            right: 1px;
+            bottom: 3px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 6px;
+            height: 6px;
+            background: #ff69b4;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        .calendar-day.has-reminders::before {
+            content: '📌';
+            position: absolute;
+            top: 2px;
+            right: 2px;
             font-size: 10px;
-            animation: blossomPulse 2s infinite;
         }
         
         .calendar-day.current.has-classes::after {
-            content: '✨';
-            color: white;
+            background: white;
         }
         
-        @keyframes blossomPulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.7; transform: scale(1.2); }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: translateX(-50%) scale(1); }
+            50% { opacity: 0.6; transform: translateX(-50%) scale(1.2); }
         }
         
         .selected-date {
             text-align: center;
-            padding: 15px;
-            background: linear-gradient(135deg, #ffe0ec 0%, #ffd1dc 50%, #ffb6c1 100%);
-            border-radius: 15px;
-            margin-bottom: 15px;
-            border: 2px solid rgba(255, 105, 180, 0.3);
-            box-shadow: 0 4px 15px rgba(255, 20, 147, 0.2);
-            position: relative;
-        }
-        
-        .selected-date::before {
-            content: '💕';
-            position: absolute;
-            top: -8px;
-            left: 15px;
-            font-size: 1.2rem;
-            animation: heartFloat 3s ease-in-out infinite;
-        }
-        
-        .selected-date::after {
-            content: '💕';
-            position: absolute;
-            top: -8px;
-            right: 15px;
-            font-size: 1.2rem;
-            animation: heartFloat 3s ease-in-out infinite 1.5s;
-        }
-        
-        @keyframes heartFloat {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-5px); }
+            padding: 20px;
+            background: linear-gradient(135deg, #ffe0ec, #ffd1dc);
+            border-radius: 20px;
+            margin-bottom: 20px;
+            border: 2px solid rgba(255, 105, 180, 0.2);
         }
         
         .selected-date h3 {
             font-size: 1.1rem;
             color: #ff1493;
-            font-weight: 800;
+            font-weight: 700;
             margin-bottom: 5px;
-            text-shadow: 1px 1px 3px rgba(255, 20, 147, 0.2);
         }
         
         .classes-container {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 240, 245, 0.9) 100%);
-            border-radius: 15px;
-            padding: 15px;
-            box-shadow: 0 8px 25px rgba(255, 20, 147, 0.15);
-            border: 2px solid rgba(255, 182, 193, 0.3);
-            position: relative;
-        }
-        
-        .classes-container::before {
-            content: '🎀';
-            position: absolute;
-            top: -10px;
-            left: 50%;
-            transform: translateX(-50%);
             background: white;
-            padding: 3px 8px;
-            border-radius: 50%;
-            font-size: 1rem;
-            box-shadow: 0 2px 8px rgba(255, 20, 147, 0.3);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            border: 2px solid rgba(255, 182, 193, 0.2);
         }
         
         .no-classes {
             text-align: center;
-            padding: 30px 15px;
+            padding: 40px 20px;
             color: #8b4d6b;
-            font-size: 1rem;
-            font-weight: 700;
+            font-size: 1.1rem;
+            font-weight: 600;
         }
         
         .no-classes::before {
-            content: '🌸 ✨ 💕';
+            content: '🌸';
             display: block;
-            font-size: 2rem;
+            font-size: 3rem;
             margin-bottom: 10px;
-            animation: noClassFloat 4s ease-in-out infinite;
-        }
-        
-        @keyframes noClassFloat {
-            0%, 100% { transform: translateY(0px); }
-            33% { transform: translateY(-3px); }
-            66% { transform: translateY(3px); }
         }
         
         .class-item {
-            background: linear-gradient(135deg, #ffb6c1 0%, #ffc0cb 50%, #ffe4e1 100%);
+            background: linear-gradient(135deg, #ffb6c1, #ffc0cb);
             border-radius: 15px;
-            padding: 15px 12px;
+            padding: 20px 15px;
             margin-bottom: 15px;
-            border: 2px solid rgba(255, 255, 255, 0.6);
+            border: 2px solid rgba(255, 255, 255, 0.5);
             transition: all 0.3s ease;
             position: relative;
             overflow: hidden;
-            box-shadow: 0 4px 15px rgba(255, 182, 193, 0.3);
         }
         
-        .class-item::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-            transition: left 0.5s;
-        }
-        
-        .class-item:hover::before, .class-item:active::before {
-            left: 100%;
-        }
-        
-        .class-item:hover, .class-item:active {
+        .class-item:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(255, 182, 193, 0.5);
-            border-color: rgba(255, 105, 180, 0.8);
+            box-shadow: 0 8px 25px rgba(255, 182, 193, 0.3);
         }
         
         .class-item:last-child {
@@ -424,188 +490,573 @@
             justify-content: space-between;
             align-items: flex-start;
             margin-bottom: 10px;
-            flex-wrap: wrap;
-            gap: 8px;
         }
         
         .class-time {
-            font-size: 0.8rem;
+            font-size: 0.85rem;
             color: #8b4d6b;
-            font-weight: 800;
-            background: rgba(255, 255, 255, 0.8);
-            padding: 6px 10px;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(255, 20, 147, 0.2);
-            border: 1px solid rgba(255, 105, 180, 0.2);
-            white-space: nowrap;
+            font-weight: 700;
+            background: rgba(255, 255, 255, 0.7);
+            padding: 4px 8px;
+            border-radius: 8px;
         }
         
         .class-name {
-            font-size: 1rem;
+            font-size: 1.1rem;
             color: #8b4d6b;
-            font-weight: 800;
-            margin-bottom: 10px;
-            text-shadow: 1px 1px 2px rgba(139, 77, 107, 0.1);
-            line-height: 1.2;
+            font-weight: 700;
+            margin-bottom: 8px;
         }
         
         .class-info {
-            display: flex;
-            flex-direction: column;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
             gap: 8px;
             margin-bottom: 10px;
         }
         
         .class-detail {
-            font-size: 0.85rem;
+            font-size: 0.9rem;
             color: #8b4d6b;
-            font-weight: 700;
-            background: rgba(255, 255, 255, 0.6);
-            padding: 6px 10px;
-            border-radius: 10px;
-            border: 1px solid rgba(255, 105, 180, 0.2);
-            display: flex;
-            align-items: center;
+            font-weight: 600;
         }
         
         .class-detail i {
-            margin-right: 6px;
+            margin-right: 5px;
             font-size: 0.8rem;
-            min-width: 14px;
         }
         
         .support-message {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 240, 245, 0.9) 100%);
+            background: rgba(255, 255, 255, 0.8);
             border: 2px dashed #ff69b4;
-            border-radius: 12px;
-            padding: 12px;
+            border-radius: 10px;
+            padding: 8px;
             font-size: 0.85rem;
-            font-weight: 700;
+            font-weight: 600;
             text-align: center;
             color: #8b4d6b;
             margin-top: 10px;
-            animation: messageGlow 3s infinite alternate;
-            position: relative;
-            line-height: 1.3;
-        }
-        
-        .support-message::before {
-            content: '💖';
-            position: absolute;
-            top: -8px;
-            left: 10px;
-            background: white;
-            padding: 3px;
-            border-radius: 50%;
-            font-size: 0.8rem;
-        }
-        
-        .support-message::after {
-            content: '💖';
-            position: absolute;
-            top: -8px;
-            right: 10px;
-            background: white;
-            padding: 3px;
-            border-radius: 50%;
-            font-size: 0.8rem;
+            animation: messageGlow 2s infinite alternate;
         }
         
         @keyframes messageGlow {
-            0% { 
-                background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 240, 245, 0.9) 100%);
-                border-color: #ff69b4;
-            }
-            100% { 
-                background: linear-gradient(135deg, rgba(255, 192, 203, 0.4) 0%, rgba(255, 182, 193, 0.4) 100%);
-                border-color: #ff1493;
-            }
+            0% { background: rgba(255, 255, 255, 0.8); }
+            100% { background: rgba(255, 192, 203, 0.3); }
         }
         
         .current-class {
-            background: linear-gradient(135deg, #ff69b4 0%, #ff1493 50%, #dc143c 100%) !important;
+            background: linear-gradient(135deg, #ff69b4, #ff1493) !important;
             color: white !important;
             animation: currentGlow 2s infinite;
             transform: scale(1.02);
-            border: 2px solid rgba(255, 255, 255, 0.8) !important;
         }
         
         .current-class .class-time,
         .current-class .class-name,
         .current-class .class-detail {
             color: white !important;
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
         }
         
         .current-class .class-time {
-            background: rgba(255, 255, 255, 0.3) !important;
-            border-color: rgba(255, 255, 255, 0.5) !important;
-        }
-        
-        .current-class .class-detail {
             background: rgba(255, 255, 255, 0.2) !important;
-            border-color: rgba(255, 255, 255, 0.4) !important;
         }
         
-        .current-class::after {
-            content: '✨ ¡CLASE ACTUAL! ✨';
+        .current-class::before {
+            content: '✨ EN CURSO ✨';
             position: absolute;
-            top: -10px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(255, 255, 255, 0.95);
+            top: -8px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.9);
             color: #ff1493;
-            padding: 4px 12px;
-            border-radius: 15px;
+            padding: 4px 8px;
+            border-radius: 10px;
             font-size: 0.7rem;
             font-weight: 800;
             animation: sparkle 1.5s infinite;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
         }
         
         .upcoming-class {
-            background: linear-gradient(135deg, #ffd700 0%, #ffb347 50%, #ffa500 100%) !important;
+            background: linear-gradient(135deg, #ffd700, #ffb347) !important;
             animation: upcomingGlow 3s infinite;
             transform: scale(1.01);
-            border: 2px solid rgba(255, 215, 0, 0.6) !important;
         }
         
         .upcoming-class .class-time,
         .upcoming-class .class-name,
         .upcoming-class .class-detail {
             color: #8b4513 !important;
-            text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.5);
         }
         
-        .upcoming-class::after {
-            content: '⏰ ¡PRÓXIMA CLASE! ⏰';
+        .upcoming-class::before {
+            content: '⏰ PRÓXIMA ⏰';
             position: absolute;
-            top: -10px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(139, 69, 19, 0.95);
+            top: -8px;
+            right: 10px;
+            background: rgba(139, 69, 19, 0.9);
             color: #ffd700;
-            padding: 4px 12px;
-            border-radius: 15px;
+            padding: 4px 8px;
+            border-radius: 10px;
             font-size: 0.7rem;
             font-weight: 800;
             animation: sparkle 1.5s infinite;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
         }
         
         @keyframes currentGlow {
-            0%, 100% { box-shadow: 0 8px 30px rgba(255, 20, 147, 0.5); }
-            50% { box-shadow: 0 12px 35px rgba(255, 20, 147, 0.7); }
+            0%, 100% { box-shadow: 0 8px 30px rgba(255, 20, 147, 0.4); }
+            50% { box-shadow: 0 12px 40px rgba(255, 20, 147, 0.6); }
         }
         
         @keyframes upcomingGlow {
-            0%, 100% { box-shadow: 0 8px 30px rgba(255, 215, 0, 0.5); }
-            50% { box-shadow: 0 12px 35px rgba(255, 215, 0, 0.7); }
+            0%, 100% { box-shadow: 0 8px 30px rgba(255, 215, 0, 0.4); }
+            50% { box-shadow: 0 12px 40px rgba(255, 215, 0, 0.6); }
         }
         
         @keyframes sparkle {
-            0%, 100% { opacity: 1; transform: translateX(-50%) scale(1); }
-            50% { opacity: 0.8; transform: translateX(-50%) scale(1.05); }
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.05); }
+        }
+        
+        /* Sección de recordatorios */
+        .section-title {
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #ff1493;
+            margin-bottom: 30px;
+            position: relative;
+        }
+        
+        .section-title::after {
+            content: '💖';
+            position: absolute;
+            right: -30px;
+            top: 0;
+        }
+        
+        .recordatorios-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .recordatorio-card {
+            background: linear-gradient(135deg, #fff9c4, #fff3cd);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            border: 2px solid rgba(255, 215, 0, 0.3);
+            position: relative;
+            transform: rotate(-1deg);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .recordatorio-card:nth-child(even) {
+            transform: rotate(1deg);
+            background: linear-gradient(135deg, #e7f3ff, #cce7ff);
+            border-color: rgba(0, 123, 255, 0.3);
+        }
+        
+        .recordatorio-card:nth-child(3n) {
+            transform: rotate(0deg);
+            background: linear-gradient(135deg, #f0fff0, #e6ffe6);
+            border-color: rgba(34, 139, 34, 0.3);
+        }
+        
+        .recordatorio-card:hover {
+            transform: rotate(0deg) scale(1.05);
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.15);
+        }
+        
+        .recordatorio-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+        
+        .recordatorio-fecha {
+            background: rgba(255, 255, 255, 0.7);
+            padding: 4px 8px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #8b4d6b;
+        }
+        
+        .recordatorio-actions {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .action-btn {
+            width: 25px;
+            height: 25px;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            transition: all 0.3s ease;
+        }
+        
+        .edit-btn {
+            background: #17a2b8;
+            color: white;
+        }
+        
+        .delete-btn {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .action-btn:hover {
+            transform: scale(1.1);
+        }
+        
+        .recordatorio-titulo {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #8b4d6b;
+            margin-bottom: 8px;
+        }
+        
+        .recordatorio-descripcion {
+            font-size: 0.9rem;
+            color: #6c757d;
+            line-height: 1.4;
+        }
+        
+        .recordatorio-urgent {
+            border-left: 5px solid #ff1493;
+            animation: urgentPulse 2s infinite;
+        }
+        
+        @keyframes urgentPulse {
+            0%, 100% { box-shadow: 0 8px 25px rgba(255, 20, 147, 0.2); }
+            50% { box-shadow: 0 12px 35px rgba(255, 20, 147, 0.4); }
+        }
+        
+        /* Sección de notas rápidas */
+        .notas-input-container {
+            background: linear-gradient(135deg, #ffe0ec, #ffd1dc);
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 30px;
+            border: 2px solid rgba(255, 105, 180, 0.2);
+        }
+        
+        .notas-input-container h3 {
+            color: #ff1493;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+        
+        .nota-rapida-input {
+            width: 100%;
+            min-height: 80px;
+            padding: 15px;
+            border: 2px solid rgba(255, 182, 193, 0.3);
+            border-radius: 15px;
+            font-family: 'Nunito', sans-serif;
+            font-size: 1rem;
+            background: rgba(255, 255, 255, 0.8);
+            resize: vertical;
+            transition: all 0.3s ease;
+        }
+        
+        .nota-rapida-input:focus {
+            outline: none;
+            border-color: #ff69b4;
+            box-shadow: 0 0 0 3px rgba(255, 105, 180, 0.2);
+        }
+        
+        .nota-rapida-input::placeholder {
+            color: #8b4d6b;
+            font-style: italic;
+        }
+        
+        .guardar-nota-btn {
+            background: linear-gradient(135deg, #ff69b4, #ff1493);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+            font-family: 'Nunito', sans-serif;
+        }
+        
+        .guardar-nota-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 20, 147, 0.3);
+        }
+        
+        .notas-rapidas-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+        }
+        
+        .nota-rapida-card {
+            background: linear-gradient(135deg, #fff9c4, #fff3cd);
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            border: 2px solid rgba(255, 215, 0, 0.3);
+            position: relative;
+            transform: rotate(-1deg);
+            transition: all 0.3s ease;
+        }
+        
+        .nota-rapida-card:nth-child(even) {
+            transform: rotate(1deg);
+            background: linear-gradient(135deg, #f0fff0, #e6ffe6);
+            border-color: rgba(34, 139, 34, 0.3);
+        }
+        
+        .nota-rapida-card:nth-child(3n) {
+            transform: rotate(0deg);
+            background: linear-gradient(135deg, #e7f3ff, #cce7ff);
+            border-color: rgba(0, 123, 255, 0.3);
+        }
+        
+        .nota-rapida-card:hover {
+            transform: rotate(0deg) scale(1.05);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+        
+        .nota-rapida-contenido {
+            font-size: 0.9rem;
+            color: #8b4d6b;
+            line-height: 1.4;
+            margin-bottom: 10px;
+        }
+        
+        .nota-rapida-fecha {
+            font-size: 0.7rem;
+            color: #6c757d;
+            text-align: right;
+            font-style: italic;
+        }
+        
+        /* Mascotita kawaii */
+        .mascota-kawaii {
+            position: fixed;
+            bottom: 80px;
+            left: 20px;
+            width: 100px;
+            height: 100px;
+            cursor: move;
+            z-index: 999;
+            transition: all 0.3s ease;
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+        
+        .mascota-kawaii:hover {
+            transform: scale(1.1);
+            filter: drop-shadow(0 8px 25px rgba(255, 20, 147, 0.4));
+        }
+        
+        .mascota-kawaii.dragging {
+            transform: scale(0.9);
+            opacity: 0.8;
+        }
+        
+        .mascota-kawaii.hidden {
+            display: none;
+        }
+        
+        /* Botón flotante */
+        .fab {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #ff69b4, #ff1493);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 8px 25px rgba(255, 20, 147, 0.4);
+            transition: all 0.3s ease;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .fab:hover {
+            transform: scale(1.1);
+            box-shadow: 0 12px 35px rgba(255, 20, 147, 0.6);
+        }
+        
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1001;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+        }
+        
+        .modal-content {
+            background: linear-gradient(135deg, #ffeef7, #ffe0ec);
+            margin: 10% auto;
+            padding: 30px;
+            border-radius: 25px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            position: relative;
+            animation: modalSlideIn 0.3s ease;
+        }
+        
+        @keyframes modalSlideIn {
+            from { opacity: 0; transform: translateY(-50px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .modal-header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #ff1493;
+            margin-bottom: 10px;
+        }
+        
+        .close {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 28px;
+            font-weight: bold;
+            color: #ff1493;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .close:hover {
+            transform: scale(1.2);
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #8b4d6b;
+            font-size: 0.9rem;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid rgba(255, 182, 193, 0.3);
+            border-radius: 15px;
+            font-size: 1rem;
+            font-family: 'Nunito', sans-serif;
+            background: rgba(255, 255, 255, 0.8);
+            transition: all 0.3s ease;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: #ff69b4;
+            box-shadow: 0 0 0 3px rgba(255, 105, 180, 0.2);
+        }
+        
+        textarea.form-control {
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 25px;
+        }
+        
+        .btn {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 15px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Nunito', sans-serif;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #ff69b4, #ff1493);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #6c757d;
+            border: 2px solid #dee2e6;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+        
+        /* Notificaciones kawaii */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #ff69b4, #ff1493);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(255, 20, 147, 0.4);
+            z-index: 1002;
+            transform: translateX(400px);
+            transition: all 0.3s ease;
+            max-width: 300px;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        .notification-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .notification-emoji {
+            font-size: 1.5rem;
+        }
+        
+        .notification-text {
+            font-weight: 600;
+            font-size: 0.9rem;
         }
         
         .floating-hearts {
@@ -623,184 +1074,119 @@
             position: absolute;
             color: #ff69b4;
             font-size: 20px;
-            animation: float 8s ease-in-out infinite;
+            animation: float 6s ease-in-out infinite;
         }
         
         @keyframes float {
-            0%, 100% { transform: translateY(0px) rotate(0deg) scale(1); }
-            25% { transform: translateY(-15px) rotate(90deg) scale(1.1); }
-            50% { transform: translateY(-30px) rotate(180deg) scale(1); }
-            75% { transform: translateY(-15px) rotate(270deg) scale(0.9); }
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-30px) rotate(180deg); }
         }
         
-        .heart:nth-child(1) { top: 15%; left: 10%; animation-delay: 0s; }
-        .heart:nth-child(2) { top: 25%; right: 15%; animation-delay: 2s; }
-        .heart:nth-child(3) { bottom: 35%; left: 20%; animation-delay: 4s; }
-        .heart:nth-child(4) { bottom: 50%; right: 10%; animation-delay: 6s; }
-        .heart:nth-child(5) { top: 55%; left: 5%; animation-delay: 1s; }
-        .heart:nth-child(6) { top: 40%; right: 25%; animation-delay: 3s; }
-        .heart:nth-child(7) { bottom: 20%; left: 15%; animation-delay: 5s; }
-        .heart:nth-child(8) { top: 70%; right: 5%; animation-delay: 7s; }
+        .heart:nth-child(1) { top: 20%; left: 10%; animation-delay: 0s; }
+        .heart:nth-child(2) { top: 30%; right: 15%; animation-delay: 1.5s; }
+        .heart:nth-child(3) { bottom: 40%; left: 20%; animation-delay: 3s; }
+        .heart:nth-child(4) { bottom: 60%; right: 10%; animation-delay: 4.5s; }
+        .heart:nth-child(5) { top: 60%; left: 5%; animation-delay: 6s; }
         
-        /* Mejoras para pantallas muy pequeñas */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(135deg, #ff69b4, #ff1493);
+            padding: 10px 0 20px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-decoration: none;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.7rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-item.active {
+            color: white;
+            transform: scale(1.1);
+        }
+        
+        .nav-item i {
+            font-size: 20px;
+            margin-bottom: 2px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px 20px;
+            color: #8b4d6b;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        
+        .loading::before {
+            content: '💫';
+            display: block;
+            font-size: 3rem;
+            margin-bottom: 10px;
+            animation: spin 2s linear infinite;
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
         @media (max-width: 375px) {
             .header {
                 padding: 15px 10px 25px;
             }
             
             .header-title {
-                font-size: 1.4rem;
+                font-size: 1.5rem;
             }
             
-            .header-subtitle {
-                font-size: 0.8rem;
-            }
-            
-            .hello-kitty-img {
-                width: 60px;
-            }
-            
-            .calendar-section {
-                padding: 15px 10px 80px;
-                margin: 12px 8px 0;
+            .calendar-section, .recordatorios-section, .notas-section {
+                padding: 20px 15px 100px;
             }
             
             .month-title {
-                font-size: 1rem;
-            }
-            
-            .nav-btn {
-                width: 35px;
-                height: 35px;
-                font-size: 16px;
-            }
-            
-            .today-btn {
-                padding: 8px 16px;
-                font-size: 0.8rem;
-            }
-            
-            .calendar-grid {
-                gap: 2px;
-            }
-            
-            .calendar-day {
-                font-size: 0.8rem;
-                min-height: 30px;
-            }
-            
-            .day-header {
-                padding: 6px 2px;
-                font-size: 0.75rem;
-            }
-            
-            .class-item {
-                padding: 12px 10px;
-                margin-bottom: 12px;
-            }
-            
-            .class-name {
-                font-size: 0.9rem;
-            }
-            
-            .class-time {
-                font-size: 0.75rem;
-                padding: 5px 8px;
-            }
-            
-            .class-detail {
-                font-size: 0.8rem;
-                padding: 5px 8px;
-            }
-            
-            .support-message {
-                font-size: 0.8rem;
-                padding: 10px;
-            }
-        }
-        
-        /* Mejoras adicionales para dispositivos táctiles */
-        @media (hover: none) and (pointer: coarse) {
-            .nav-btn:hover,
-            .today-btn:hover,
-            .calendar-day:hover,
-            .class-item:hover {
-                transform: none;
-            }
-            
-            .nav-btn:active {
-                transform: scale(0.95);
-            }
-            
-            .today-btn:active {
-                transform: translateY(1px);
-            }
-            
-            .calendar-day:active {
-                transform: scale(0.95);
-            }
-            
-            .class-item:active {
-                transform: translateY(1px);
-            }
-        }
-        
-        /* Optimizaciones para pantallas más grandes en móviles */
-        @media (min-width: 376px) and (max-width: 480px) {
-            .header-title {
-                font-size: 1.8rem;
-            }
-            
-            .hello-kitty-img {
-                width: 90px;
-            }
-            
-            .calendar-day {
-                min-height: 40px;
-                font-size: 1rem;
-            }
-            
-            .class-name {
                 font-size: 1.1rem;
             }
-        }
-        
-        /* Mejoras para tablets en modo portrait */
-        @media (min-width: 481px) and (max-width: 768px) {
-            .header {
-                padding: 25px 20px 35px;
-            }
-            
-            .header-title {
-                font-size: 2rem;
-            }
-            
-            .hello-kitty-img {
-                width: 100px;
-            }
-            
-            .calendar-section {
-                margin: 20px 15px 0;
-                padding: 25px 20px 100px;
-            }
-            
-            .month-title {
-                font-size: 1.4rem;
-            }
-            
-            .calendar-grid {
-                gap: 4px;
-            }
             
             .calendar-day {
-                min-height: 45px;
-                font-size: 1.1rem;
+                font-size: 0.8rem;
             }
             
             .class-info {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 10px;
+                grid-template-columns: 1fr;
+            }
+            
+            .recordatorios-grid, .notas-rapidas-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .modal-content {
+                margin: 5% auto;
+                width: 95%;
+                padding: 20px;
+            }
+            
+            .mascota-kawaii {
+                width: 80px;
+                height: 80px;
+                bottom: 100px;
+            }
+            
+            .tab-btn {
+                font-size: 0.7rem;
+                padding: 12px 8px;
             }
         }
     </style>
@@ -812,122 +1198,223 @@
         <div class="heart">💖</div>
         <div class="heart">🎀</div>
         <div class="heart">💗</div>
-        <div class="heart">✨</div>
-        <div class="heart">🌺</div>
-        <div class="heart">💐</div>
     </div>
+
+    <!-- Mascotita kawaii arrastrable -->
+    <img 
+        id="mascotaKawaii" 
+        class="mascota-kawaii" 
+        src="https://media2.giphy.com/media/v1.Y2lkPTZjMDliOTUycXhrNGs4anpjeHQyczc2MGw1dTBxMmZrejFzbTB6dDFmbmoxN3pnNSZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/10a8AOSeP6Rqfu/source.gif" 
+        alt="Mascotita Kawaii" 
+        title="¡Hola! Soy tu mascotita kawaii 🐰 ¡Arrastra me donde quieras!"
+    >
 
     <div class="container">
         <div class="header">
-            <img src="https://i.pinimg.com/originals/67/f8/36/67f83611fbc34bd2038895203e92797a.gif" alt="Hello Kitty" class="hello-kitty-img">
-            <h1 class="header-title">Calendario de Nini</h1>
-            <p class="header-subtitle"> la mas hermosa </p>
+            <button class="mascota-toggle" id="mascotaToggle" onclick="toggleMascota()">🐰 Mascotita</button>
+            <select class="theme-selector" id="themeSelector" onchange="cambiarTema(this.value)">
+                <option value="theme-rosa">🌸 Rosa</option>
+                <option value="theme-lila">💜 Lila</option>
+                <option value="theme-celeste">💙 Celeste</option>
+            </select>
+            <h1 class="header-title">Horario Nini</h1>
+            <p class="header-subtitle">El calendario de la princesa</p>
         </div>
 
-        <div class="calendar-section">
-            <div class="month-nav">
-                <button class="nav-btn" onclick="previousMonth()">‹</button>
-                <h2 class="month-title" id="monthTitle">Agosto 2025</h2>
-                <button class="nav-btn" onclick="nextMonth()">›</button>
-            </div>
-            
-            <button class="today-btn" onclick="goToToday()">🌸 Hoy 🌸</button>
+        <!-- Navegación por pestañas -->
+        <div class="tab-nav">
+            <button class="tab-btn active" onclick="switchTab('calendario')">📅 Calendario</button>
+            <button class="tab-btn" onclick="switchTab('recordatorios')">📝 Anota lo importante</button>
+            <button class="tab-btn" onclick="switchTab('notasRapidas')">📌 Notas rápidas</button>
+        </div>
 
-            <div class="calendar-grid" id="calendarGrid">
-                <div class="day-header">L</div>
-                <div class="day-header">M</div>
-                <div class="day-header">M</div>
-                <div class="day-header">J</div>
-                <div class="day-header">V</div>
-                <div class="day-header">S</div>
-                <div class="day-header">D</div>
-            </div>
+        <!-- Contenido del calendario -->
+        <div id="calendario" class="tab-content active">
+            <div class="calendar-section">
+                <div class="month-nav">
+                    <button class="nav-btn" onclick="previousMonth()">‹</button>
+                    <h2 class="month-title" id="monthTitle">Agosto 2025</h2>
+                    <button class="nav-btn" onclick="nextMonth()">›</button>
+                </div>
+                
+                <button class="today-btn" onclick="goToToday()">Hoy</button>
 
-            <div class="selected-date" id="selectedDate">
-                <h3>Lun, Ago. 4, 2025</h3>
-            </div>
+                <div class="calendar-grid" id="calendarGrid">
+                    <div class="day-header">L</div>
+                    <div class="day-header">M</div>
+                    <div class="day-header">M</div>
+                    <div class="day-header">J</div>
+                    <div class="day-header">V</div>
+                    <div class="day-header">S</div>
+                    <div class="day-header">D</div>
+                </div>
 
-            <div class="classes-container" id="classesContainer">
-                <div class="no-classes">Sin Clases Hoy 🌸</div>
+                <div class="selected-date" id="selectedDate">
+                    <h3>Lun, Ago. 4, 2025</h3>
+                </div>
+
+                <div class="classes-container" id="classesContainer">
+                    <div class="loading">Cargando...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contenido de recordatorios -->
+        <div id="recordatorios" class="tab-content">
+            <div class="recordatorios-section">
+                <h2 class="section-title">Anota lo importante</h2>
+                <div id="recordatoriosContainer">
+                    <div class="loading">Cargando recordatorios...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contenido de notas rápidas -->
+        <div id="notasRapidas" class="tab-content">
+            <div class="notas-section">
+                <h2 class="section-title">📌 Tus notas rápidas</h2>
+                
+                <div class="notas-input-container">
+                    <h3>✨ Escribe algo rápido</h3>
+                    <textarea 
+                        id="notaRapidaInput" 
+                        class="nota-rapida-input" 
+                        placeholder="Escribe aquí tu nota rápida... 💭"
+                        maxlength="500"
+                    ></textarea>
+                    <button class="guardar-nota-btn" onclick="guardarNotaRapida()">💖 Guardar</button>
+                </div>
+                
+                <div id="notasRapidasContainer">
+                    <div class="loading">Cargando notas rápidas...</div>
+                </div>
             </div>
         </div>
     </div>
 
+    <!-- Botón flotante para agregar recordatorio -->
+    <button class="fab" onclick="openModal()" title="Agregar recordatorio">+</button>
+
+    <!-- Modal para agregar/editar recordatorio -->
+    <div id="recordatorioModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <div class="modal-header">
+                <h3 class="modal-title" id="modalTitle">✨ Nuevo Recordatorio ✨</h3>
+                <p style="color: #8b4d6b; font-size: 0.9rem;">Anota algo importante para no olvidarlo 💕</p>
+            </div>
+            <form id="recordatorioForm">
+                <input type="hidden" id="recordatorioId" value="">
+                <div class="form-group">
+                    <label class="form-label">📋 Título del recordatorio</label>
+                    <input type="text" id="titulo" class="form-control" placeholder="Ej: Entrega de proyecto" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">📅 Fecha</label>
+                    <input type="date" id="fecha" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">📝 Descripción (opcional)</label>
+                    <textarea id="descripcion" class="form-control" placeholder="Agrega detalles adicionales..."></textarea>
+                </div>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">💖 Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Script de Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.0/dist/umd/supabase.js"></script>
+
     <script>
-        // Configuración de horarios de clases con información completa
+        /* 
+        =====================================
+        CONFIGURACIÓN Y VARIABLES GLOBALES
+        =====================================
+        */
+        
+        // Configuración de Supabase
+        const SUPABASE_URL = 'https://cmzqeopkdhyvvezgskkg.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtenFlb3BrZGh5dnZlemdza2tnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcxMDM5NzksImV4cCI6MjA3MjY3OTk3OX0.op_boavBweRnFYbnw4LEvrMNAevRGabFG6w7aXGU_Z4';
+        
+        // Variables globales
+        let supabase = null;
+        let recordatoriosData = [];
+        let notasRapidas = [];
+        let isSupabaseConnected = false;
+
+        // Intentar conectar con Supabase
+        if (SUPABASE_URL !== 'TU_SUPABASE_URL_AQUÍ' && SUPABASE_KEY !== 'TU_SUPABASE_ANON_KEY_AQUÍ') {
+            try {
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                isSupabaseConnected = true;
+                console.log('✅ Conectado a Supabase');
+            } catch (error) {
+                console.log('❌ Error al conectar con Supabase:', error);
+            }
+        } else {
+            console.log('⚠️ Configuración de Supabase pendiente - usando datos locales');
+        }
+
+        // Configuración de horarios de clases
         const clases = [
             { 
                 dia: 'Lunes', 
-                horaInicio: '08:05', 
-                horaFin: '11:05',
-                nombre: 'Psicologia del Desarrollo 2', 
-                profesor: 'Prof. María Romero', 
-                sala: 'Sala 113' 
-            },
-            
-            { 
-                dia: 'Martes', 
-                horaInicio: '08:56', 
-                horaFin: '11:05',
-                nombre: 'Teorías Psicoanalíticas', 
-                profesor: 'Prof. NN ', 
-                sala: 'Sala 538' 
-            },
-            { 
-                dia: 'Martes', 
                 horaInicio: '11:15', 
                 horaFin: '14:05',
-                nombre: 'Psicobiología', 
-                profesor: 'Prof. Hurí Binimeus', 
-                sala: 'Sala 444' 
+                nombre: 'PSICOLOGÍA DEL DESARROLLO II', 
+                profesor: 'Prof. María Romero', 
+                sala: 'PSI-174' 
             },
             { 
-                dia: 'Martes', 
+                dia: 'Lunes', 
                 horaInicio: '14:56', 
                 horaFin: '17:05',
-                nombre: 'TEORÍAS Cognitivas', 
-                profesor: 'Prof. Hurí Binimeus', 
-                sala: 'Sala 472' 
+                nombre: 'TALLER RELACIONES HUMANAS', 
+                profesor: 'Prof. Antonella Bradayanes', 
+                sala: 'PSI-177' 
             },
             { 
-                dia: 'Miércoles', 
+                dia: 'Martes', 
+                horaInicio: '08:15', 
+                horaFin: '11:05',
+                nombre: 'PSICOBIOLOGÍA', 
+                profesor: 'Prof. NN ', 
+                sala: 'PSI-104' 
+            },
+            { 
+                dia: 'Martes', 
                 horaInicio: '11:15', 
-                horaFin: '12:35',
-                nombre: ' Pensamiento Matemático Para Cs.Sociales - Catedra', 
-                profesor: 'Prof. NN', 
-                sala: 'Sala 474' 
+                horaFin: '13:25',
+                nombre: 'TEORÍAS PSICOANALÍTICAS ', 
+                profesor: 'Prof. Hurí Binimeus', 
+                sala: 'PSI-175' 
             },
             { 
                 dia: 'Miércoles', 
-                horaInicio: '12:45', 
-                horaFin: '14:05',
-                nombre: ' Pensamiento Matemático Para Cs.Sociales - Ayundatía', 
+                horaInicio: '09:45', 
+                horaFin: '11:05',
+                nombre: ' PENSAMIENTO MATEMÁTICO PARA CS.SOCIALES', 
                 profesor: 'Prof. NN', 
-                sala: 'Sala 538' 
+                sala: 'MTM-113' 
             },
             { 
                 dia: 'Miércoles', 
-                horaInicio: '17:56', 
-                horaFin: '19:20',
-                nombre: ' Psicobiología', 
+                horaInicio: '14:56', 
+                horaFin: '17:05',
+                nombre: ' TEORÍAS COGNITIVAS', 
                 profesor: 'Prof. Hector Araya', 
-                sala: 'Sala 529' 
+                sala: 'PSI-176' 
             },
             { 
                 dia: 'Jueves', 
-                horaInicio: '10:26', 
-                horaFin: '12:35',
-                nombre: 'Taller: Relaciones Humanas', 
-                profesor: 'Prof. NN', 
-                sala: 'Sala 452' 
-            },
-            { 
-                dia: 'Jueves', 
-                horaInicio: '12:45', 
+                horaInicio: '14:30', 
                 horaFin: '14:05',
-                nombre: 'Pensamiento Matemático Para Cs.Sociales - Ayundatía', 
-                profesor: 'Prof. NN', 
-                sala: 'Sala 474' 
+                nombre: 'PENSAMIENTO MATEMÁTICO PARA CS.SOCIALES', 
+                profesor: 'Prof. Rojas', 
+                sala: 'MAT-113' 
             },
             { 
                 dia: 'Viernes', 
@@ -935,7 +1422,7 @@
                 horaFin: '11:05',
                 nombre: ' TÉCNICAS PARA HABLAR EN PÚBLICO', 
                 profesor: 'Prof. Ruth Espejo', 
-                sala: 'Sala 460' 
+                sala: 'FGL-104' 
             }
         ];
 
@@ -947,42 +1434,433 @@
         const diasSemana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
         const diasAbrev = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
-        // Mensajes de apoyo más románticos y kawaii
+        // Mensajes de apoyo
         const mensajesApoyo = [
-            "💖 Bubu, recuerda que eres mi estrella más brillante y hoy vas a iluminar toda la clase ✨",
-            "🌸 Princesa hermosa, cada pregunta que hagas es una semilla de sabiduría que florece 🌺",
-            "🎀 Chanchita preciosa, tu sonrisa es mi amuleto de la suerte para que todo te salga perfecto 💕",
-            "🌟 Mi amor, confía en ti tanto como yo confío en ti, porque eres increíble ⭐",
-            "🦋 Bubu kawaii, tus ideas vuelan tan alto como las mariposas más bonitas 💫",
-            "🌹 Princesa, eres tan inteligente que hasta las flores se ponen celosas de tu brillantez 🌷",
-            "💗 Chanchita linda, cada paso que das es un paso hacia tus sueños más bonitos 🌈",
-            "✨ Mi niña preciosa, hoy el mundo va a conocer lo increíble que eres 🎉",
-            "🍓 Bubu dulce, eres más dulce que todos los dulces del mundo juntos 🧁",
-            "🌸 Princesa mágica, convierte cada desafío en una aventura llena de aprendizaje 🦄",
-            "🌟 Bubu preciosa, tu luz es tan grande que hasta el sol te admira ☀️",
-            "🌼 Princesita linda, tu inteligencia es como un jardín lleno de flores nuevas cada día 🌿",
-            "💞 Chanchita hermosa, cada vez que aprendes algo nuevo, tu brillo se vuelve aún más fuerte ✨",
-            "🌟 Mi amor bonito, hoy el mundo se va a enamorar de tu forma de pensar 💖",
-            "🧸 Bubu tierna, eres el abrazo que me da calma y la fuerza que me inspira 🫶",
-            "🌈 Princesa de mi vida, cada meta que alcances será como pintar el cielo de colores 🌤️",
-            "🌷 Chanchita de mi corazón, confía en ti porque eres capaz de todo lo que sueñas 💕",
-            "📚 Mi niña, cada página que aprendes es un paso más hacia tu historia más bonita 📖",
-            "🧸 Bubu hermosa, cuando te mires hoy, recuerda que eres talento, belleza y magia 💎",
-            "🎀 Princesa encantadora, tu dulzura y tu inteligencia son el regalo más bonito del mundo 💌"
+            "¡Tú puedes! 💪✨ Vas a brillar en esta clase",
+            "¡Ánimo! 🌟 Cada clase es una oportunidad de aprender",
+            "¡Confía en ti! 💖 Tienes todo lo necesario para triunfar",
+            "¡Dale con todo! 🚀 Tu esfuerzo valdrá la pena",
+            "¡Sonríe! 😊 Aprender es una aventura maravillosa",
+            "¡Eres increíble! ⭐ Esta clase será genial",
+            "¡Fuerza! 💕 Cada paso te acerca a tus metas",
+            "¡Vamos! 🎯 Tu dedicación te llevará lejos"
         ];
 
-        // Configurar zona horaria de Santiago, Chile
+        // Frases kawaii para la mascotita
+        const frasesMascotita = [
+            "Eres la mejor estudiante 💕",
+            "Estoy orgulloso de ti 🌸",
+            "Todo saldrá bien 💖",
+            "¡Ánimo mi amor! ✨",
+            "Gracias por existir 💕",
+            "Hoy te va a ir increíble 🐰",
+            "Tómate agüita y respira 💧",
+            "Confío en ti siempre 🌟",
+            "Eres súper inteligente 🧠",
+            "Te quiero mucho 💗"
+        ];
+
+        // Variables globales para el calendario
         let fechaActual = new Date(new Date().toLocaleString("en-US", {timeZone: "America/Santiago"}));
         let mesActual = fechaActual.getMonth();
         let añoActual = fechaActual.getFullYear();
         let diaSeleccionado = fechaActual.getDate();
+        let editingRecordatorioId = null;
 
+        /* 
+        =====================================
+        FUNCIONES DE TEMAS
+        =====================================
+        */
+        
+        function cambiarTema(tema) {
+            // Quitar todas las clases de tema previas
+            document.body.classList.remove('theme-rosa', 'theme-lila', 'theme-celeste');
+            
+            // Agregar la nueva clase de tema
+            if (tema && tema !== 'theme-rosa') {
+                document.body.classList.add(tema);
+            }
+            
+            // Guardar en localStorage
+            localStorage.setItem('temaKawaii', tema);
+            
+            // Mostrar notificación
+            const temaNames = {
+                'theme-rosa': '🌸 Tema Rosa',
+                'theme-lila': '💜 Tema Lila', 
+                'theme-celeste': '💙 Tema Celeste'
+            };
+            showNotification(`${temaNames[tema]} activado`, '✨');
+        }
+
+        function cargarTemaGuardado() {
+            const temaGuardado = localStorage.getItem('temaKawaii') || 'theme-rosa';
+            document.getElementById('themeSelector').value = temaGuardado;
+            cambiarTema(temaGuardado);
+        }
+
+        /* 
+        =====================================
+        FUNCIONES DE LA MASCOTITA
+        =====================================
+        */
+        
+        function initMascotita() {
+            const mascota = document.getElementById('mascotaKawaii');
+            let isDragging = false;
+            let startX, startY, startLeft, startTop;
+            let clickStartTime, clickStartX, clickStartY;
+
+            // Cargar posición guardada
+            const savedLeft = localStorage.getItem('mascotaLeft');
+            const savedTop = localStorage.getItem('mascotaTop');
+            const isVisible = localStorage.getItem('mascotaVisible') !== 'false';
+            
+            if (savedLeft) mascota.style.left = savedLeft;
+            if (savedTop) mascota.style.top = savedTop;
+            if (!isVisible) mascota.classList.add('hidden');
+
+            // Eventos de arrastre
+            mascota.addEventListener('mousedown', startDrag);
+            mascota.addEventListener('touchstart', startDrag, {passive: false});
+            
+            function startDrag(e) {
+                e.preventDefault();
+                isDragging = false;
+                clickStartTime = Date.now();
+                
+                const clientX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
+                const clientY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
+                
+                clickStartX = clientX;
+                clickStartY = clientY;
+                startX = clientX;
+                startY = clientY;
+                startLeft = mascota.offsetLeft;
+                startTop = mascota.offsetTop;
+                
+                document.addEventListener('mousemove', drag);
+                document.addEventListener('touchmove', drag, {passive: false});
+                document.addEventListener('mouseup', stopDrag);
+                document.addEventListener('touchend', stopDrag);
+            }
+            
+            function drag(e) {
+                e.preventDefault();
+                const clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
+                const clientY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
+                
+                const deltaX = Math.abs(clientX - clickStartX);
+                const deltaY = Math.abs(clientY - clickStartY);
+                
+                if ((deltaX > 5 || deltaY > 5) && !isDragging) {
+                    isDragging = true;
+                    mascota.classList.add('dragging');
+                }
+                
+                if (isDragging) {
+                    const newLeft = startLeft + (clientX - startX);
+                    const newTop = startTop + (clientY - startY);
+                    
+                    // Mantener dentro de la pantalla
+                    const maxLeft = window.innerWidth - mascota.offsetWidth;
+                    const maxTop = window.innerHeight - mascota.offsetHeight;
+                    
+                    mascota.style.left = Math.max(0, Math.min(newLeft, maxLeft)) + 'px';
+                    mascota.style.top = Math.max(0, Math.min(newTop, maxTop)) + 'px';
+                }
+            }
+            
+            function stopDrag(e) {
+                document.removeEventListener('mousemove', drag);
+                document.removeEventListener('touchmove', drag);
+                document.removeEventListener('mouseup', stopDrag);
+                document.removeEventListener('touchend', stopDrag);
+                
+                if (isDragging) {
+                    mascota.classList.remove('dragging');
+                    // Guardar posición
+                    localStorage.setItem('mascotaLeft', mascota.style.left);
+                    localStorage.setItem('mascotaTop', mascota.style.top);
+                } else {
+                    // Click sin arrastrar - mostrar mensaje
+                    const clickDuration = Date.now() - clickStartTime;
+                    if (clickDuration < 200) {
+                        mostrarMensajeMascotita();
+                    }
+                }
+                
+                isDragging = false;
+            }
+        }
+
+        function mostrarMensajeMascotita() {
+            const frase = frasesMascotita[Math.floor(Math.random() * frasesMascotita.length)];
+            showNotification(frase, '🐰');
+        }
+
+        function toggleMascota() {
+            const mascota = document.getElementById('mascotaKawaii');
+            const button = document.getElementById('mascotaToggle');
+            
+            if (mascota.classList.contains('hidden')) {
+                mascota.classList.remove('hidden');
+                button.textContent = '🐰 Ocultar';
+                localStorage.setItem('mascotaVisible', 'true');
+                showNotification('¡Hola de nuevo! 🐰', '💕');
+            } else {
+                mascota.classList.add('hidden');
+                button.textContent = '🐰 Mostrar';
+                localStorage.setItem('mascotaVisible', 'false');
+                showNotification('¡Hasta luego! Me esconderé aquí 🐰', '👋');
+            }
+        }
+
+        /* 
+        =====================================
+        FUNCIONES DE NOTAS RÁPIDAS
+        =====================================
+        */
+        
+        async function cargarNotasRapidas() {
+            if (isSupabaseConnected) {
+                try {
+                    const { data, error } = await supabase
+                        .from('notas_rapidas')
+                        .select('*')
+                        .order('created_at', { ascending: false });
+                    
+                    if (error) throw error;
+                    notasRapidas = data || [];
+                    console.log('📌 Notas rápidas cargadas desde Supabase:', data?.length || 0);
+                } catch (error) {
+                    console.error('❌ Error al cargar notas rápidas:', error);
+                    showNotification('Error al cargar notas rápidas', '⚠️');
+                }
+            }
+            renderNotasRapidas();
+        }
+
+        async function guardarNotaRapida() {
+            const input = document.getElementById('notaRapidaInput');
+            const contenido = input.value.trim();
+            
+            if (!contenido) {
+                showNotification('Escribe algo antes de guardar', '📝');
+                input.focus();
+                return;
+            }
+            
+            const nota = {
+                contenido: contenido,
+                created_at: new Date().toISOString()
+            };
+            
+            if (isSupabaseConnected) {
+                try {
+                    const { data, error } = await supabase
+                        .from('notas_rapidas')
+                        .insert(nota)
+                        .select();
+                    
+                    if (error) throw error;
+                    
+                    notasRapidas.unshift(data[0]);
+                    showNotification('Nota guardada exitosamente', '💖');
+                } catch (error) {
+                    console.error('❌ Error al guardar nota:', error);
+                    showNotification('Error al guardar nota', '❌');
+                    return;
+                }
+            } else {
+                // Modo local
+                nota.id = 'local_' + Date.now();
+                notasRapidas.unshift(nota);
+                showNotification('Nota guardada (modo local)', '💖');
+            }
+            
+            input.value = '';
+            renderNotasRapidas();
+        }
+
+        function renderNotasRapidas() {
+            const container = document.getElementById('notasRapidasContainer');
+            
+            if (notasRapidas.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #8b4d6b;">
+                        <div style="font-size: 3rem; margin-bottom: 10px;">📝</div>
+                        <h3 style="margin-bottom: 10px; color: #ff1493;">Sin notas aún 💕</h3>
+                        <p>Escribe tu primera nota rápida arriba ✨</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = '<div class="notas-rapidas-grid"></div>';
+            const grid = container.querySelector('.notas-rapidas-grid');
+            
+            notasRapidas.forEach((nota, index) => {
+                const card = document.createElement('div');
+                card.className = 'nota-rapida-card';
+                
+                const fecha = new Date(nota.created_at).toLocaleString('es-CL', {
+                    day: 'numeric',
+                    month: 'short',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                
+                card.innerHTML = `
+                    <div class="nota-rapida-contenido">${nota.contenido}</div>
+                    <div class="nota-rapida-fecha">${fecha}</div>
+                `;
+                
+                grid.appendChild(card);
+            });
+        }
+
+        /* 
+        =====================================
+        FUNCIONES DE SUPABASE Y RECORDATORIOS
+        =====================================
+        */
+        
+        async function cargarRecordatorios() {
+            if (isSupabaseConnected) {
+                try {
+                    const { data, error } = await supabase
+                        .from('recordatorios')
+                        .select('*')
+                        .order('fecha', { ascending: true });
+                    
+                    if (error) throw error;
+                    recordatoriosData = data;
+                    console.log('📝 Recordatorios cargados desde Supabase:', data.length);
+                } catch (error) {
+                    console.error('❌ Error al cargar recordatorios:', error);
+                    showNotification('Error al cargar recordatorios', '❌');
+                }
+            }
+            renderRecordatorios();
+        }
+
+        async function guardarRecordatorio(recordatorio) {
+            if (isSupabaseConnected) {
+                try {
+                    if (recordatorio.id) {
+                        // Actualizar
+                        const { data, error } = await supabase
+                            .from('recordatorios')
+                            .update({
+                                titulo: recordatorio.titulo,
+                                fecha: recordatorio.fecha,
+                                descripcion: recordatorio.descripcion
+                            })
+                            .eq('id', recordatorio.id)
+                            .select();
+                        
+                        if (error) throw error;
+                        
+                        const index = recordatoriosData.findIndex(r => r.id === recordatorio.id);
+                        if (index !== -1) {
+                            recordatoriosData[index] = data[0];
+                        }
+                        showNotification('Recordatorio actualizado exitosamente', '✨');
+                    } else {
+                        // Crear nuevo
+                        const { data, error } = await supabase
+                            .from('recordatorios')
+                            .insert({
+                                titulo: recordatorio.titulo,
+                                fecha: recordatorio.fecha,
+                                descripcion: recordatorio.descripcion
+                            })
+                            .select();
+                        
+                        if (error) throw error;
+                        
+                        recordatoriosData.push(data[0]);
+                        showNotification('Recordatorio guardado exitosamente', '💖');
+                    }
+                } catch (error) {
+                    console.error('❌ Error al guardar recordatorio:', error);
+                    showNotification('Error al guardar recordatorio', '❌');
+                    return false;
+                }
+            } else {
+                // Modo local
+                if (recordatorio.id) {
+                    const index = recordatoriosData.findIndex(r => r.id === recordatorio.id);
+                    if (index !== -1) {
+                        recordatoriosData[index] = recordatorio;
+                    }
+                    showNotification('Recordatorio actualizado (modo local)', '✨');
+                } else {
+                    recordatorio.id = 'local_' + Date.now();
+                    recordatoriosData.push(recordatorio);
+                    showNotification('Recordatorio guardado (modo local)', '💖');
+                }
+            }
+            
+            renderRecordatorios();
+            actualizarCalendario();
+            return true;
+        }
+
+        async function eliminarRecordatorio(id) {
+            if (isSupabaseConnected) {
+                try {
+                    const { error } = await supabase
+                        .from('recordatorios')
+                        .delete()
+                        .eq('id', id);
+                    
+                    if (error) throw error;
+                    
+                    recordatoriosData = recordatoriosData.filter(r => r.id !== id);
+                    showNotification('Recordatorio eliminado exitosamente', '🗑️');
+                } catch (error) {
+                    console.error('❌ Error al eliminar recordatorio:', error);
+                    showNotification('Error al eliminar recordatorio', '❌');
+                    return false;
+                }
+            } else {
+                recordatoriosData = recordatoriosData.filter(r => r.id !== id);
+                showNotification('Recordatorio eliminado (modo local)', '🗑️');
+            }
+            
+            renderRecordatorios();
+            actualizarCalendario();
+            return true;
+        }
+
+        /* 
+        =====================================
+        FUNCIONES DEL CALENDARIO
+        =====================================
+        */
+        
         function obtenerHoraChile() {
             return new Date(new Date().toLocaleString("en-US", {timeZone: "America/Santiago"}));
         }
 
-        function goBack() {
-            console.log('Navegando hacia atrás...');
+        function switchTab(tab) {
+            // Actualizar botones
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Mostrar contenido
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(tab).classList.add('active');
+            
+            // Cargar datos según la pestaña
+            if (tab === 'recordatorios') {
+                cargarRecordatorios();
+            } else if (tab === 'notasRapidas') {
+                cargarNotasRapidas();
+            }
         }
 
         function previousMonth() {
@@ -1016,6 +1894,11 @@
             return clases.filter(clase => clase.dia === diaNombre);
         }
 
+        function obtenerRecordatoriosDelDia(fecha) {
+            const fechaStr = fecha.toISOString().split('T')[0];
+            return recordatoriosData.filter(recordatorio => recordatorio.fecha === fechaStr);
+        }
+
         function parseHora(horaStr) {
             const [horas, minutos] = horaStr.split(':').map(Number);
             return horas * 60 + minutos;
@@ -1024,7 +1907,6 @@
         function esClaseActual(clase, fechaClase) {
             const ahora = obtenerHoraChile();
             
-            // Solo verificar si es el día actual
             if (fechaClase.toDateString() !== ahora.toDateString()) return false;
             
             const horaActualMinutos = ahora.getHours() * 60 + ahora.getMinutes();
@@ -1037,19 +1919,70 @@
         function esProximaClase(clase, fechaClase) {
             const ahora = obtenerHoraChile();
             
-            // Solo verificar si es el día actual
             if (fechaClase.toDateString() !== ahora.toDateString()) return false;
             
             const horaActualMinutos = ahora.getHours() * 60 + ahora.getMinutes();
             const horaInicioMinutos = parseHora(clase.horaInicio);
             
-            // Considerar próxima si falta entre 0 y 30 minutos
             const tiempoRestante = horaInicioMinutos - horaActualMinutos;
             return tiempoRestante > 0 && tiempoRestante <= 30;
         }
 
         function obtenerMensajeApoyo() {
             return mensajesApoyo[Math.floor(Math.random() * mensajesApoyo.length)];
+        }
+
+        function getDaysBetween(date1, date2) {
+            const oneDay = 24 * 60 * 60 * 1000;
+            return Math.round((date2 - date1) / oneDay);
+        }
+
+        function checkReminders() {
+            const hoy = obtenerHoraChile();
+            hoy.setHours(0, 0, 0, 0);
+
+            recordatoriosData.forEach(recordatorio => {
+                const fechaRecordatorio = new Date(recordatorio.fecha + 'T00:00:00');
+                const diasFaltantes = getDaysBetween(hoy, fechaRecordatorio);
+
+                let mensaje = '';
+                let emoji = '';
+
+                if (diasFaltantes === 0) {
+                    mensaje = `Hoy es el día de: ${recordatorio.titulo}, ¡mucho éxito amor!`;
+                    emoji = '🚨';
+                } else if (diasFaltantes === 3) {
+                    mensaje = `En 3 días tienes: ${recordatorio.titulo}`;
+                    emoji = '📚';
+                } else if (diasFaltantes === 7) {
+                    mensaje = `En 7 días tienes: ${recordatorio.titulo}`;
+                    emoji = '✨';
+                }
+
+                if (mensaje) {
+                    showNotification(mensaje, emoji);
+                }
+            });
+        }
+
+        function showNotification(message, emoji = '💖') {
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            notification.innerHTML = `
+                <div class="notification-content">
+                    <div class="notification-emoji">${emoji}</div>
+                    <div class="notification-text">${message}</div>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => notification.classList.add('show'), 100);
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => document.body.removeChild(notification), 300);
+            }, 4000);
         }
 
         function actualizarCalendario() {
@@ -1091,9 +2024,14 @@
                 
                 const fechaDia = new Date(añoActual, mesActual, dia);
                 const clasesDelDia = obtenerClasesDelDia(fechaDia);
+                const recordatoriosDelDia = obtenerRecordatoriosDelDia(fechaDia);
                 
                 if (clasesDelDia.length > 0) {
                     dayElement.classList.add('has-classes');
+                }
+                
+                if (recordatoriosDelDia.length > 0) {
+                    dayElement.classList.add('has-reminders');
                 }
 
                 // Marcar día actual
@@ -1109,7 +2047,6 @@
                 if (dia === diaSeleccionado) {
                     dayElement.style.background = 'linear-gradient(135deg, #ffb6c1, #ffc0cb)';
                     dayElement.style.transform = 'scale(1.05)';
-                    dayElement.style.borderColor = 'rgba(255, 105, 180, 0.6)';
                 }
 
                 grid.appendChild(dayElement);
@@ -1117,7 +2054,7 @@
 
             // Días del mes siguiente para completar la grilla
             const diasMostrados = primerDiaAjustado + diasEnMes;
-            const diasRestantes = 42 - diasMostrados; // 6 semanas * 7 días
+            const diasRestantes = 42 - diasMostrados;
             
             for (let dia = 1; dia <= Math.min(diasRestantes, 14); dia++) {
                 const dayElement = document.createElement('div');
@@ -1143,17 +2080,57 @@
                 year: 'numeric'
             });
 
-            document.getElementById('selectedDate').innerHTML = `<h3>💕 ${diaTexto} 💕</h3>`;
+            document.getElementById('selectedDate').innerHTML = `<h3>${diaTexto}</h3>`;
 
             const clasesDelDia = obtenerClasesDelDia(fechaSeleccionada);
+            const recordatoriosDelDia = obtenerRecordatoriosDelDia(fechaSeleccionada);
             const container = document.getElementById('classesContainer');
 
-            if (clasesDelDia.length === 0) {
-                container.innerHTML = '<div class="no-classes">¡Día libre para descansar! 🌸✨</div>';
+            if (clasesDelDia.length === 0 && recordatoriosDelDia.length === 0) {
+                container.innerHTML = '<div class="no-classes">Sin eventos para este día</div>';
                 return;
             }
 
             container.innerHTML = '';
+            
+            // Mostrar recordatorios del día
+            recordatoriosDelDia.forEach(recordatorio => {
+                const recordatorioElement = document.createElement('div');
+                recordatorioElement.className = 'class-item';
+                recordatorioElement.style.background = 'linear-gradient(135deg, #fff9c4, #fff3cd)';
+                recordatorioElement.style.borderColor = 'rgba(255, 215, 0, 0.5)';
+                
+                const hoy = obtenerHoraChile();
+                const fechaRecordatorio = new Date(recordatorio.fecha + 'T00:00:00');
+                const esHoy = fechaRecordatorio.toDateString() === hoy.toDateString();
+                
+                if (esHoy) {
+                    recordatorioElement.classList.add('recordatorio-urgent');
+                }
+                
+                recordatorioElement.innerHTML = `
+                    <div class="class-header">
+                        <div class="class-time">📌 Recordatorio</div>
+                        ${esHoy ? '<div style="color: #ff1493; font-weight: 800;">¡HOY!</div>' : ''}
+                    </div>
+                    <div class="class-name">${recordatorio.titulo}</div>
+                    <div class="class-info" style="grid-template-columns: 1fr;">
+                        <div class="class-detail">
+                            📅 ${new Date(recordatorio.fecha).toLocaleDateString('es-CL')}
+                        </div>
+                        ${recordatorio.descripcion ? `
+                        <div class="class-detail" style="margin-top: 8px; font-style: italic;">
+                            ${recordatorio.descripcion}
+                        </div>
+                        ` : ''}
+                    </div>
+                    ${esHoy ? '<div class="support-message">¡Hoy es el gran día! 🌟 ¡Tú puedes!</div>' : ''}
+                `;
+                
+                container.appendChild(recordatorioElement);
+            });
+            
+            // Mostrar clases del día
             clasesDelDia.forEach(clase => {
                 const classElement = document.createElement('div');
                 classElement.className = 'class-item';
@@ -1174,9 +2151,9 @@
 
                 classElement.innerHTML = `
                     <div class="class-header">
-                        <div class="class-time">🕐 ${clase.horaInicio} - ${clase.horaFin}</div>
+                        <div class="class-time">${clase.horaInicio} - ${clase.horaFin}</div>
                     </div>
-                    <div class="class-name">📚 ${clase.nombre}</div>
+                    <div class="class-name">${clase.nombre}</div>
                     <div class="class-info">
                         <div class="class-detail">
                             <i>👨‍🏫</i> ${clase.profesor}
@@ -1192,62 +2169,189 @@
             });
         }
 
-        // Inicializar
-        actualizarCalendario();
-
-        // Actualizar cada minuto para mantener los estados actuales
-        setInterval(actualizarCalendario, 60000);
-
-        // Agregar efectos de partículas al hacer click
-        document.addEventListener('click', function(e) {
-            createSparkles(e.clientX, e.clientY);
-        });
-
-        function createSparkles(x, y) {
-            const sparkles = ['✨', '💖', '🌸', '💫', '⭐'];
-            const sparkle = document.createElement('div');
-            sparkle.style.position = 'fixed';
-            sparkle.style.left = x + 'px';
-            sparkle.style.top = y + 'px';
-            sparkle.style.color = '#ff69b4';
-            sparkle.style.fontSize = '16px';
-            sparkle.style.pointerEvents = 'none';
-            sparkle.style.zIndex = '9999';
-            sparkle.textContent = sparkles[Math.floor(Math.random() * sparkles.length)];
-            sparkle.style.animation = 'sparkleEffect 1s ease-out forwards';
+        function renderRecordatorios() {
+            const container = document.getElementById('recordatoriosContainer');
             
-            // Agregar keyframes dinámicamente
-            if (!document.querySelector('#sparkle-styles')) {
-                const style = document.createElement('style');
-                style.id = 'sparkle-styles';
-                style.textContent = `
-                    @keyframes sparkleEffect {
-                        0% { transform: scale(0) rotate(0deg); opacity: 1; }
-                        100% { transform: scale(1.5) rotate(180deg) translateY(-30px); opacity: 0; }
-                    }
+            if (recordatoriosData.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #8b4d6b;">
+                        <div style="font-size: 3rem; margin-bottom: 10px;">📝</div>
+                        <h3 style="margin-bottom: 10px; color: #ff1493;">¡Aún no tienes recordatorios!</h3>
+                        <p>Presiona el botón + para agregar tu primer recordatorio kawaii 💖</p>
+                    </div>
                 `;
-                document.head.appendChild(style);
+                return;
             }
             
-            document.body.appendChild(sparkle);
+            const recordatoriosOrdenados = [...recordatoriosData].sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
             
-            setTimeout(() => {
-                sparkle.remove();
-            }, 1000);
+            container.innerHTML = '<div class="recordatorios-grid"></div>';
+            const grid = container.querySelector('.recordatorios-grid');
+            
+            const hoy = obtenerHoraChile();
+            hoy.setHours(0, 0, 0, 0);
+            
+            recordatoriosOrdenados.forEach(recordatorio => {
+                const fechaRecordatorio = new Date(recordatorio.fecha + 'T00:00:00');
+                const diasFaltantes = getDaysBetween(hoy, fechaRecordatorio);
+                
+                const card = document.createElement('div');
+                card.className = 'recordatorio-card';
+                
+                if (diasFaltantes <= 3 && diasFaltantes >= 0) {
+                    card.classList.add('recordatorio-urgent');
+                }
+                
+                let badgeText = '';
+                if (diasFaltantes === 0) badgeText = '¡HOY!';
+                else if (diasFaltantes === 1) badgeText = 'Mañana';
+                else if (diasFaltantes > 0) badgeText = `En ${diasFaltantes} días`;
+                else badgeText = 'Pasado';
+                
+                card.innerHTML = `
+                    <div class="recordatorio-header">
+                        <div class="recordatorio-fecha">${badgeText}</div>
+                        <div class="recordatorio-actions">
+                            <button class="action-btn edit-btn" onclick="editRecordatorio('${recordatorio.id}')" title="Editar">✏️</button>
+                            <button class="action-btn delete-btn" onclick="confirmDelete('${recordatorio.id}')" title="Eliminar">🗑️</button>
+                        </div>
+                    </div>
+                    <div class="recordatorio-titulo">${recordatorio.titulo}</div>
+                    <div class="recordatorio-descripcion">${recordatorio.descripcion || 'Sin descripción'}</div>
+                    <div style="margin-top: 8px; font-size: 0.8rem; color: #6c757d;">
+                        📅 ${new Date(recordatorio.fecha).toLocaleDateString('es-CL')}
+                    </div>
+                `;
+                
+                grid.appendChild(card);
+            });
         }
 
-        // Prevenir zoom en dispositivos móviles al hacer doble tap
-        let lastTouchEnd = 0;
-        document.addEventListener('touchend', function (event) {
-            const now = (new Date()).getTime();
-            if (now - lastTouchEnd <= 300) {
-                event.preventDefault();
-            }
-            lastTouchEnd = now;
-        }, false);
+        /* 
+        =====================================
+        FUNCIONES DEL MODAL
+        =====================================
+        */
+        
+        function openModal() {
+            document.getElementById('recordatorioModal').style.display = 'block';
+            document.getElementById('modalTitle').textContent = '✨ Nuevo Recordatorio ✨';
+            document.getElementById('recordatorioForm').reset();
+            editingRecordatorioId = null;
+            
+            // Establecer fecha por defecto (hoy)
+            const hoy = obtenerHoraChile().toISOString().split('T')[0];
+            document.getElementById('fecha').value = hoy;
+        }
 
-        // Optimización para scroll suave en móviles
-        document.documentElement.style.scrollBehavior = 'smooth';
+        function closeModal() {
+            document.getElementById('recordatorioModal').style.display = 'none';
+        }
+
+        function editRecordatorio(id) {
+            const recordatorio = recordatoriosData.find(r => r.id === id);
+            if (!recordatorio) return;
+            
+            document.getElementById('recordatorioId').value = id;
+            document.getElementById('titulo').value = recordatorio.titulo;
+            document.getElementById('fecha').value = recordatorio.fecha;
+            document.getElementById('descripcion').value = recordatorio.descripcion || '';
+            document.getElementById('modalTitle').textContent = '✏️ Editar Recordatorio';
+            
+            editingRecordatorioId = id;
+            document.getElementById('recordatorioModal').style.display = 'block';
+        }
+
+        function confirmDelete(id) {
+            if (confirm('¿Estás segura que quieres eliminar este recordatorio? 🥺')) {
+                eliminarRecordatorio(id);
+            }
+        }
+
+        // Evento del formulario
+        document.getElementById('recordatorioForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const recordatorio = {
+                id: editingRecordatorioId,
+                titulo: document.getElementById('titulo').value.trim(),
+                fecha: document.getElementById('fecha').value,
+                descripcion: document.getElementById('descripcion').value.trim()
+            };
+            
+            if (!recordatorio.titulo) {
+                showNotification('El título es obligatorio', '📝');
+                return;
+            }
+            
+            if (!recordatorio.fecha) {
+                showNotification('La fecha es obligatoria', '📅');
+                return;
+            }
+            
+            const success = await guardarRecordatorio(recordatorio);
+            if (success) {
+                closeModal();
+            }
+        });
+
+        // Cerrar modal al hacer click fuera
+        window.onclick = function(event) {
+            const modal = document.getElementById('recordatorioModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+
+        // Permitir Enter en el textarea de nota rápida
+        document.addEventListener('DOMContentLoaded', function() {
+            const notaInput = document.getElementById('notaRapidaInput');
+            if (notaInput) {
+                notaInput.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' && e.ctrlKey) {
+                        guardarNotaRapida();
+                    }
+                });
+            }
+        });
+
+        /* 
+        =====================================
+        INICIALIZACIÓN
+        =====================================
+        */
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🌸 Iniciando Calendario Kawaii...');
+            
+            // Cargar tema guardado
+            cargarTemaGuardado();
+            
+            // Inicializar mascotita
+            initMascotita();
+            
+            // Actualizar calendario inicial
+            actualizarCalendario();
+            
+            // Cargar datos iniciales
+            cargarRecordatorios();
+            cargarNotasRapidas();
+            
+            // Verificar recordatorios importantes
+            setTimeout(checkReminders, 2000);
+            
+            console.log('✅ Calendario Kawaii iniciado correctamente');
+            
+            // Mostrar mensaje de bienvenida
+            setTimeout(() => {
+                showNotification('¡Bienvenida a tu calendario kawaii! 💖', '🌸');
+            }, 1000);
+        });
+
+        // Actualizar clases cada minuto
+        setInterval(() => {
+            actualizarClasesDelDia();
+        }, 60000);
     </script>
 </body>
 </html>
